@@ -1,0 +1,546 @@
+****************************************************************
+* GIF-SUBS    v1.05.09/29/89  GIF99VIEWER FOR V9958  BY O.P.A. *
+****************************************************************
+*                                                              *
+* Source Published: 04/30/2024 garyopa.com / ti99.atariage.com *
+*                                                              *
+* Copyrighted 1989 by Gary Bowser and Achim Liese from O.P.A.  *
+*                                                              *
+* Credit Must Be Included When Using Source from GIF9958VIEWER *
+*                                                              *
+****************************************************************
+ 
+********************* PASSED: R0 = Address to put character set
+* Write CHAR set    *
+*********************
+WRTCHR ORI  R0,>4000          Set bit 1 for VDP write operation
+       SWPB R0
+       MOVB R0,@VDPWA         Write LSByte of VDP address
+       SWPB R0
+       MOVB R0,@VDPWA         Write MSByte of VDP address
+       LI   R1,CHAR           Point to CHAR table in CPU ram
+       LI   R0,1024           Length of character table
+WRTCHS MOVB *R1+,@VDPWD       Write a byte of character table
+       DEC  R0                Check if finished
+       JNE  WRTCHS            Nope, so write some more
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+********************* PASSED: R3 = Sector to be read from disk
+* Read a sector     *
+*********************
+RDSEC  MOVB @HEX01,@SEC$RW    Set SEC$RW control to read mode
+       MOV  R3,@SECNUM        Pass the sector number to the DSR
+       LI   R0,>1A00          Point to the VDP sector buffer
+       MOV  R0,@SECBUF        Pass the buffer addr. to the DSR
+       MOVB @SAVDRV,@SECDRV   Pass the drive number to the DSR
+       LI   R0,>1810          Point to the VDP sector PAB
+       MOV  R0,@POINTR        Pass the PAB address to the DSR
+       LI   R1,SECPAB         Point to the CPU location of PAB
+       LI   R2,2              Length of data to write
+       BLWP @VMBW             Write the PAB to VDP RAM
+       BLWP @DSRLNK           EXECUTE THE SUB-PROGRAM SECTOR I/O
+       DATA >A
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+*********************
+* Get drive/filename*
+*********************
+GETNAM MOV  R11,R10           Save the return address
+GETNAN BL   @WRTSCR           Display 'Loading DSK .' line
+       DATA LNLOAD
+       MOVB @KYMOD3,@KEYBRD   Switch to keyboard mode 3
+GETNAO BLWP @KSCAN            Scan the keyboard
+       MOV  @STATUS,R0        Get current keyboard status
+       COC  @KYSPCE,R0        Check if new key pressed
+       JNE  GETNAO            Nope, so continue scaning
+       MOVB @KEYVAL,R2        Put key value into MSByte of R2
+       CB   R2,@KYQUIT        Check if key press was QUIT
+       JNE  GETNAP            Nope, so skip over exit
+       B    @QUIT             QUIT, so exit to TI title screen
+GETNAP LI   R1,DRVLST         Point to list of drive numbers
+GETNAQ MOVB *R1+,R0           Get a drive number
+       JEQ  GETNAO            If >00, then continue scaning
+       CB   R0,R2             Check if key matchs drive number
+       JNE  GETNAQ            Nope, so check next drive number
+       LI   R1,LNOFND         Yep, so point to error message
+       MOV  *R1+,R0           Put screen address into R0
+       MOV  *R1+,R1           Put length of message into R1
+       BL   @CLEAR            Clear the message from screen
+       MOV  @LNLOAD,R0        Get screen address of 'Loading'
+       AI   R0,12             Point to the drive number byte
+       BL   @VWWA             Setup VDP write address
+       MOVB R2,@VDPWD         Write the drive # to the screen
+       SB   @HEX30,R2         Make R2 a real drive number
+       MOVB R2,@SAVDRV        Save the drive number
+       LI   R3,1              Sector number 1 is wanted
+       BL   @RDSEC            Read a sorted catalog sector
+       LI   R0,>1A00          Point to the VDP sector buffer
+       LI   R1,SECONE         Point to the CPU sector buffer
+       LI   R2,256            Max. length of a sector
+       BLWP @VMBR             Move the sector from VDP to CPU
+       MOV  R1,R4             Put starting pointer into R4
+       LI   R5,FILTBL         Point to top of GIF file table
+GETNAR MOV  *R4,*R4           Check if at end of catalog
+       JEQ  GETNAS            Yep, so stop reading the catalog
+       MOV  *R4+,R3           Nope, so get next file header
+       BL   @RDSEC            Read a file header into VDP
+       LI   R0,>1A0C          Point to byte 12 of file header
+       BL   @VRWA             Setup VDP read address
+       MOVB @VDPRD,R1         Read the file status flags
+       ANDI R1,>F700          Mask off the protection bit 4
+       JNE  GETNAR            If not >00, then get next file
+       LI   R0,>1A11          Point to byte 17 of file header
+       BL   @VRWA             Setup VDP read address
+       MOVB @VDPRD,R1         Read the logical record length
+       CB   R1,@HEX80         Check if equal to 128
+       JNE  GETNAR            Nope, so get next file header
+       LI   R0,>1A00          Point to start of file header
+       MOV  R5,R1             Put current table addr. into R1
+       LI   R2,10             Max. length of a filename
+       BLWP @VMBR             Put the GIF filename into table
+       AI   R5,10             Point to the next slot in table
+       JMP  GETNAR            Done, so get next file header
+GETNAS CI   R5,FILTBL         Check if any GIF files found
+       JNE  GETNAT            Yep, so skip over error message
+       BL   @WRTSCR           Nope, so write 'NO FILES FOUND'
+       DATA LNOFND
+       JMP  GETNAN            Go back and get next drive number
+GETNAT LI   R7,FILTBL         Point to start of GIF file table
+GETNAU MOV  R7,R6             Save start pointer for up checking
+GETNAV MOV  @LNLOAD,R0        Get screen addr. of 'Loading ...'
+       AI   R0,14             Point to filename area
+       MOV  R6,R1             Load R1 with CPU address of filename
+       LI   R2,10             Max. length of a filename
+       BLWP @VMBW             Write the filename to the screen
+GETNAW MOVB @KYMOD3,@KEYBRD   Put keyboard into mode 3
+       BLWP @KSCAN            Scan the keyboard
+       MOV  @STATUS,R0        Get current keyboard status
+       COC  @KYSPCE,R0        Check if a new key pressed
+       JNE  GETNAW            Nope, so continue scaning
+       CB   @KEYVAL,@KYUP     Check if key press was UP arrow
+       JEQ  GETNAZ            Yep, so move pointer up one name
+       CB   @KEYVAL,@KYDOWN   Check if key press was DOWN arrow
+       JEQ  GETNAY            Yep, so move pointer down one name
+       CB   @KEYVAL,@KYENTR   Check if key press was ENTER
+       JEQ  GOTNAM            Yep, so use current displayed name
+       CB   @KEYVAL,@KYQUIT   Check if key press was QUIT
+       JEQ  GETNAX            Yep, so exit to TI title screen
+       CB   @KEYVAL,@KYBACK   Check if key press was BACK
+       JNE  GETNAW            Nope, so continue scaning
+       B    @GETNAN           Yep, so go back and get new drive
+GETNAX B    @QUIT             EXIT TO THE TI TITLE SCREEN
+GETNAY AI   R6,10             Down pressed, point to next name
+       C    R6,R5             Check if at end of catalog
+       JL   GETNAV            Nope, so go back and display new name
+GETNAZ AI   R6,-10            Up or at end, point to last name
+       C    R6,R7             Check if at top of catalog
+       JHE  GETNAV            Nope, so go back and display new name
+       JMP  GETNAU            Re-start at top of catalog
+GOTNAM LI   R1,GIFNAM         Point to CPU version of GIF PAB
+       LI   R2,15             Max. length of 'DSKx.' and name
+       MOV  @LNLOAD,R0        Get screen address of 'Loading ...'
+       AI   R0,9              Point to start of 'DSKx.' on screen
+       BLWP @VMBR             Read the drive and filename into CPU
+       MOVB @KYBACK,@GIFPAB+9 Put max. length of 15 into length byte
+       LI   R1,GIFNAM+14      Point to last byte of filename
+GOTNAN CB   *R1,@KYSPCE       Check if this byte is a space
+       JEQ  GOTNAO            Yep, so check next byte
+       JMP  GOTNAP            Nope, so exit filename length counter
+GOTNAO DEC  R1                Point to the next byte of filename
+       DEC  @GIFPAB+8         Minus one from max. length
+       JMP  GOTNAN            Jump back up, and check next byte
+GOTNAP B    *R10              RETURN TO THE CALLING PROGRAM
+ 
+*********************
+*                   *
+*********************
+KR     LI   R2,>0002
+       JMP  DU
+IZ     LI   R2,>0001
+DU     MOV  R11,R10
+EB     MOVB @DV(R2),@DW
+       BL   @CMDONE
+       LI   R1,DY
+       MOVB *R1+,@VDPWA
+       MOVB *R1+,@VDPWA
+EA     MOVB *R1+,@VDPWC
+       CI   R1,DY+13
+       JL   EA
+       DEC  R2
+       JNE  EB
+       B    *R10
+ 
+*********************
+*                   *
+*********************
+JI     MOV  R11,R10
+       CB   R3,@EC
+       JEQ  ED
+       SWPB R0
+       MOV  R0,@EE
+       SWPB R1
+       MOVB R1,@EF
+       SWPB R2
+       MOV  R2,@EG
+       MOVB R3,@EH
+       BL   @CMDONE
+       LI   R1,EI
+       MOVB *R1+,@VDPWA
+       MOVB *R1+,@VDPWA
+EJ     MOVB *R1+,@VDPWC
+       CI   R1,EI+13
+       JL   EJ
+ED     B    *R10
+ 
+*********************
+* Command finished? *
+*********************
+CMDONE LI   R0,>028F          Set VDP R15 to >02
+       MOVB R0,@VDPWA         Write VDP R data
+       SWPB R0
+       MOVB R0,@VDPWA         Write VDP R number
+CMDONF MOVB @VDPSTA,R0        Read status R2 into MSByte of R0
+       ANDI R0,>0100          Check if command is finished
+       JNE  CMDONF            Nope, so wait some more
+       LI   R0,>008F          Set VDP R15 to >00
+       MOVB R0,@VDPWA         Write VDP R data
+       SWPB R0
+       MOVB R0,@VDPWA         Write VDP R number
+       RT                     RETURN TO CALLING PROGRAM
+ 
+********************* PASSED: R1 = Address of VDP Rs list
+* Setup a VDP mode  *
+*********************
+SETVDP MOVB @3(R1),@VDPR1     Put new VDP R1 value into CPU copy
+       MOVB @16(R1),@VDPR14   Store new VDP RAM BANK number
+       MOVB *R1+,@VDPWA       Write LSByte of VDP address
+       MOVB *R1+,@VDPWA       Write MSByte of VDP address
+       LI   R0,15             VDP Rs 0 thru 14 to be written
+SETVDQ MOVB *R1+,@VDPWC       Write the new VDP R data
+       DEC  R0                Check if finished
+       JNE  SETVDQ            Nope, so write some more
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+*********************
+*                   *
+*********************
+LV     CB   @EC,@EP(R1)
+       JEQ  EQ
+       MOV  R8,R0
+       S    @ER,R0
+       C    R0,@ES
+       JHE  EQ
+       MOV  R7,R10
+       S    @ET,R10
+       C    R10,@EU
+       JHE  EQ
+       LI   R3,EV
+       MOVB *R3+,@VDPWA
+       MOVB *R3+,@VDPWA
+       SWPB R0
+       MOVB R0,@VDPWC
+       SWPB R0
+       MOVB R0,@VDPWC
+       MOV  @EW,@EW
+       JEQ  EX
+       SLA  R10,7
+       MOVB R10,@VDPWC
+       SLA  R10,1
+       ANDI R10,>0100
+       MOVB R10,@VDPWC
+       JMP  EY
+EX     SWPB R10
+       MOVB R10,@VDPWC
+       MOVB @HEX01,@VDPWC
+EY     MOVB *R3+,@VDPWA
+       MOVB *R3+,@VDPWA
+       MOVB @EP(R1),@VDPWC
+       MOVB *R3+,@VDPWC
+       MOVB *R3,@VDPWC
+EQ     INC  R8
+       C    R8,@EZ
+       JL   FA
+       MOV  R12,R8
+       CLR  R12
+       TB   >05
+       JNE  FB
+       MOV  R8,R12
+       MOV  @FC,R8
+       A    R6,R7
+       C    R7,@FD
+       JL   FA
+       MOV  *R9+,R7
+       JEQ  FE
+       MOV  *R9+,R6
+       JMP  FF
+FE     DECT R9
+       CLR  R6
+FF     A    @FG,R7
+FA     RT
+FB     BL   @CLOSE
+       B    @MAIN
+ 
+********************* PASSED: R3 = Address of the palette list
+* Load the palette  *
+*********************
+LDPAL  MOV  R11,R10           Save the return address
+       LI   R2,16             Sixteen palette Rs to load
+LDPAM  MOV  *R3+,R0           Get the next palette R data
+       BL   @WRTPAL           Load the palette R to VDP
+       DEC  R2                Check if finished
+       JNE  LDPAM             Nope, so load some more
+       B    *R10              RETURN TO THE CALLING PROGRAM
+ 
+********************* PASSED: DATA (label)
+* Write to screen   * (label) DATA address,length,data
+*********************
+WRTSCR MOV  *R11+,R1          Get address of address,length,data
+       MOV  *R1+,R0           Put screen address into R0
+       ORI  R0,>4000          Set bit 1 for VDP write operation
+       SWPB R0
+       MOVB R0,@VDPWA         Write LSByte of the screen address
+       SWPB R0
+       MOVB R0,@VDPWA         Write MSByte of the screen address
+       MOV  *R1+,R0           Put string length into R0
+WRTSCS MOVB *R1+,@VDPWD       Write a byte to the VDP screen
+       DEC  R0                Check if finished
+       JNE  WRTSCS            Nope, so write some more
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+********************* PASSED: R0 = VDP address of clear operation
+* Clear the screen  *         R1 = Length of screen to be cleared
+*********************
+CLEAR  ORI  R0,>4000          Set bit 1 for VDP write operation
+       MOVB @MAINWS+1,@VDPWA  Write LSByte of the screen address
+       MOVB R0,@VDPWA         Write MSByte of the screen address
+       LI   R0,>2000          Load R0 with the SPACE byte
+CLEAS  MOVB R0,@VDPWD         Clear a byte of the VDP screen
+       DEC  R1                Check if finished
+       JNE  CLEAS             Nope, so clear some more
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+*********************
+* Restore VDP memory*
+*********************
+RE$VDP MOV  R11,R10           Save the return address
+       LI   R1,LOWBUF         Point to the saved VDP data
+       MOV  *R1+,R0           Get the saved VDP address
+       BL   @VWWA             Setup VDP write address
+       MOV  *R1+,R0           Get the saved VDP size
+REVDP1 MOVB *R1+,@VDPWD       Restore a byte of VDP memory
+       DEC  R0                Check if finished
+       JNE  REVDP1            Nope, so restore some more
+       LI   R0,>008E          LSByte = VDP R14 number
+       MOVB @VDPR14,R0        Get current VDP RAM BANK number
+       MOVB R0,@VDPWA         Write VDP R data
+       SWPB R0
+       MOVB R0,@VDPWA         Write VDP R number
+       B    *R10              RETURN TO THE CALLING PROGRAM
+ 
+*********************
+* GIF file operation*
+*********************
+OPEN   MOV  @OPENMD,@GIFPAB   Put OPEN mode into GIF PAB
+       SETO @GIFPAB+6         Reset the record counter
+       JMP  DSRGIF            Jump to common entry point
+CLOSE  MOV  @CLSEMD,@GIFPAB   Put CLOSE mode into GIF PAB
+       JMP  DSRGIF            Jump to common entry point
+READ   MOV  @READMD,@GIFPAB   Put READ mode into GIF PAB
+       INC  @GIFPAB+6         Point to the next record in file
+DSRGIF LI   R0,>1820          Point to the VDP location of PAB
+       LI   R1,GIFPAB         Point to the CPU location of PAB
+       LI   R2,10             Length of the GIF PAB
+       A    @GIFPAB+8,R2      Add length of filename to R2
+       BLWP @VMBW             Write the GIF PAB to VDP
+       AI   R0,9              Point to the length byte of PAB
+       MOV  R0,@POINTR        Pass the VDP PAB address to DSR
+       BLWP @DSRLNK           EXECUTE THE PAB DSR OPERATION
+       DATA 8
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+*********************
+* Get a GIF record  *
+*********************
+GETREC MOV  R11,R10           Save return address
+       BL   @READ             Read a record from the GIF file
+       JEQ  GETERR            If errors, then display is completed
+       LI   R0,>1900          Point to VDP record buffer
+       BL   @VRWA             Setup VDP read address
+       LI   R15,RECBUF        Point to CPU record buffer
+       LI   R0,128            Max. length of record
+GETRED MOVB @VDPRD,*R15+      Read a byte of the record
+       DEC  R0                Check if finished
+       JNE  GETRED            Nope, so read some more
+       LI   R15,RECBUF        Reset pointer to top of CPU buffer
+       B    *R10              RETURN TO THE CALLING PROGRAM
+ 
+GETERR B    @DONE             Error, so wait for BACK, QUIT, ENTER
+ 
+*********************
+*                   *
+*********************
+GJ     MOV  R11,R10           Save return address
+       CI   R15,KN
+       JL   GC
+       BL   @READ             Read a record from the GIF file
+       JEQ  GETERR            If errors, then display is completed
+       LI   R0,>1900          Point to VDP record buffer
+       BL   @VRWA             Setup VDP read address
+       LI   R15,RECBUF        Point to CPU record buffer
+       LI   R0,128            Max. length of record
+GD     MOVB @VDPRD,*R15+      Read a byte of the record
+       DEC  R0                Check if finished
+       JNE  GD                Nope, so read some more
+       LI   R15,RECBUF        Reset pointer to top of CPU buffer
+GC     CLR  R0
+       MOVB *R15+,R0
+       MOVB R0,@GE
+       B    *R10              RETURN TO THE CALLING PROGRAM
+ 
+*********************
+*                   *
+*********************
+LR     MOV  R11,@GF
+       LI   R1,GG
+       MOV  R4,*R1+
+       MOV  R5,*R1+
+       MOV  R6,*R1+
+       MOV  R7,*R1
+       CLR  R4
+       MOV  @GH,R5
+       LI   R6,>0001
+       CLR  R7
+       CLR  R3
+       MOVB @GE,R3
+GO     CI   R5,>0100
+       JNE  GI
+       BL   @GJ
+       MOVB R0,R3
+       DEC  @GK
+       JNE  GI
+       BL   @GJ
+       MOVB R0,@GL
+       MOVB R3,@GE
+GI     COC  R5,R3
+       JNE  GM
+       SOC  R6,R7
+GM     SLA  R6,1
+       SLA  R5,1
+       JNC  GN
+       LI   R5,>0100
+GN     INC  R4
+       C    R4,R13
+       JL   GO
+       MOV  R5,@GH
+       MOV  R7,R1
+       LI   R2,GG
+       MOV  *R2+,R4
+       MOV  *R2+,R5
+       MOV  *R2+,R6
+       MOV  *R2,R7
+       MOV  @GF,R11
+       RT
+ 
+*********************
+* Switch to TEXT80  *
+*********************
+TEXT80 MOV  R11,R10           Save return address
+       LI   R1,TXTVDP         VDP Rs list for text 80 mode
+       BL   @SETVDP           Setup VDP to TEXT80 mode
+       LI   R0,>0A00          Address of color table
+       BL   @VWWA             Setup VDP write address
+       LI   R0,512            Clear whole color table
+       CLR  R1                Make R1 the clearing byte
+TEXT81 MOVB R1,@VDPWD         Clear a byte of color table
+       DEC  R0                Check if finished
+       JNE  TEXT81            Nope, so clear some more
+       CLR  R0                Point to start of the screen
+       LI   R1,2160           27 lines of 80 characters
+       BL   @CLEAR            Clear the whole screen
+       LI   R0,>1000          Address of image table
+       BL   @WRTCHR           Write the character set to VDP
+       B    *R10              RETURN TO THE CALLING PROGRAM
+ 
+********************* PASSED: R0 = CCCC/RRRR/GGGG/BBBB
+* Write to palette  *              CPR#/RED /GREN/BLUE
+*********************
+WRTPAL MOV  R0,R1             R1 = CCCC,xRRR,xGGG,xBBB
+       SRL  R0,4              R0 = ____,CCCC,xRRR,xGGG
+       MOVB R0,@VDPWA         Write color palette R number
+       LI   R0,>9000          Make R0 equal to VDP R16 code
+       MOVB R0,@VDPWA         Write the new VDP R16 data
+       MOV  R1,R0             R0 = CCCC,xRRR,xGGG,xBBB
+       SLA  R0,4              R0 = xRRR,xGGG,xBBB,____
+       ANDI R0,>7000          R0 = _RRR,____,____,____
+       SLA  R1,4              R1 = xRRR,xGGG,xBBB,____
+       ANDI R1,>0770          R1 = ____,_GGG,_BBB,____
+       SWPB R0                R0 = ____,____,_RRR,____
+       MOVB R1,R0             R0 = ____,_GGG,_RRR,____
+       SLA  R1,4              R1 = _GGG,_BBB,____,____
+       ANDI R1,>0700          R1 = ____,_BBB,____,____
+       SWPB R0                R0 = _RRR,____,____,_GGG
+       SOCB R1,R0             R0 = _RRR,_BBB,____,_GGG
+       MOVB R0,@VDPWP         Write RED/BLUE of palette data
+       SWPB R0                R0 = ____,_GGG,_RRR,_BBB
+       MOVB R0,@VDPWP         Write __/GREEN of palette data
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+********************* PASSED: R0 = VDP address to setup
+* Setup VDP address *
+*********************
+VWWA   ORI  R0,>4000          Set bit 1 for a VDP write operation
+VRWA   SWPB R0                Reset bit 1 for a VDP read operation
+       MOVB R0,@VDPWA         Write LSByte of VDP address
+       SWPB R0
+       MOVB R0,@VDPWA         Write MSByte of VDP address
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+*********************
+* Calc ver of GIF99 *
+*********************
+CALCVR LI   R3,GIFVER         Point to version # and date string
+       LI   R1,>0A01          Decimal / Length of 1
+       LI   R0,VERNUM         Point to version # part 1 location
+       MOV  *R3+,R2           Get part 1 of the version number
+       BLWP @CONV             Convert it to DL1
+       INC  R1                Decimal / Length of 2
+       INCT R0                Point to version # part 2 location
+       MOV  *R3+,R2           Get part 2 of the version number
+       BLWP @CONV             Convert it to DL2
+       LI   R0,VERDAY         Point to version (day) location
+       MOV  *R3+,R2           Get part 1 of the version date
+       BLWP @CONV             Convert it to DL2
+       LI   R0,VERMTH         Point to version (month) location
+       MOV  *R3+,R2           Get part 2 of the version date
+       BLWP @CONV             Convert it to DL2
+       INCT R1                Decimal / Length of 4
+       LI   R0,VERYER         Point to version (year) location
+       MOV  *R3,R2            Get part 3 of the version date
+       BLWP @CONV             Convert it to DL4
+       RT                     RETURN TO THE CALLING PROGRAM
+ 
+*********************
+* Wait for a B,Q,E  *
+*********************
+KY$BQE MOVB @KYMOD3,@KEYBRD   Put keyboard into mode 3
+KYBQE1 BLWP @KSCAN            Scan the keyboard
+       MOV  @STATUS,R0        Get current keyboard status
+       COC  @KYSPCE,R0        Check if new key pressed
+       JNE  KYBQE1            Nope, so continue scaning
+       CB   @KEYVAL,@KYBACK   Check if key press was BACK
+       JEQ  KYBQE2            Yep, so exit to GIF main screen
+       CB   @KEYVAL,@KYQUIT   Check if key press was QUIT
+       JEQ  QUIT              Yep, so exit to TI title screen
+       CB   @KEYVAL,@KYENTR   Check if key press was ENTER
+       JNE  KYBQE1            Nope, so continue scaning
+       RT                     RETURN TO THE CALLING PROGRAM
+KYBQE2 B    @MAIN             RETURN TO THE GIF MAIN SCREEN
+ 
+*********************
+* Exit from GIF99   *
+*********************
+QUIT   LI   R1,TIVDP          VDP Rs list for TI mode
+       BL   @SETVDP           Switch to TI VDP mode
+       LI   R3,PALIST         VDP palette list
+       BL   @LDPAL            Load the TI mode palette
+       BLWP @TITLE            EXIT TO THE TI TITLE SCREEN

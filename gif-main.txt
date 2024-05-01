@@ -1,0 +1,549 @@
+****************************************************************
+* GIF-MAIN    v1.05.09/29/89  GIF99VIEWER FOR V9958  BY O.P.A. *
+****************************************************************
+*                                                              *
+* Source Published: 04/30/2024 garyopa.com / ti99.atariage.com *
+*                                                              *
+* Copyrighted 1989 by Gary Bowser and Achim Liese from O.P.A.  *
+*                                                              *
+* Credit Must Be Included When Using Source from GIF9958VIEWER *
+*                                                              *
+****************************************************************
+ 
+*********************
+* START OF GIF99OPA *
+*********************
+SSTART LIMI 0                 Turn off all interrupts
+       LWPI MAINWS            Load the main workspace
+       BL   @CALCVR           Calc version number/date
+       LI   R2,LOWBUF         Point to low memory buffer
+       MOV  @RAMTOP,R1        Get current top of VDP memory
+       MOV  R1,*R2+           Save RAMTOP to LOWBUF
+       MOV  R1,R0             Put VDP address into R0
+       BL   @VRWA             Setup VDP read address
+       LI   R0,>4000          Point to the end of VDP memory
+       S    R1,R0             Calc size of disk buffers
+       MOV  R0,*R2+           Save size to LOWBUF+2
+GIF1   MOVB @VDPRD,*R2+       Save a byte of buffers to LOWBUF+4...
+       DEC  R0                Check if finished
+       JNE  GIF1              Nope, so save some more
+ 
+*********************
+* GIF99 MAIN SCREEN *
+*********************
+MAIN   BL   @TEXT80           Switch to TEXT80 mode
+       LI   R3,PALIST         Point to the 9918 palette list
+       BL   @LDPAL            Load the palette into the VDP
+       BL   @WRTSCR           Write a line to the screen
+       DATA LNTIT1
+       BL   @WRTSCR           Write a line to the screen
+       DATA LNTIT2
+       BL   @WRTSCR           Write a line to the screen
+       DATA LNTIT3
+       BL   @RE$VDP           Restore VDP disk buffers
+       BL   @GETNAM           Get drive and filename of a GIF
+       LI   R15,RECBUF
+       BL   @OPEN             Open the GIF file selected
+       BL   @GETREC           Get the first record of the file
+       BL   @CLOSE            Close the GIF file selected
+       C    @CHKFIL,*R15      Check if GIF or MY-ART file
+       JEQ  GIFILE            Jump, if GIF header found
+ 
+*********************
+* Setup for a MY-ART*
+*********************
+       BL   @WRTSCR           Display file type on screen
+       DATA LNTYP1
+       SETO @FILTYP           Set flag to >FFFF for MY-ART
+       LI   R7,>00D4
+       MOVB *R15,@EC
+       MOVB *R15+,R6
+       ANDI R6,>F000
+       JNE  IB
+       MOVB *R15+,R0
+       JEQ  IB
+IM     LI   R6,>0200
+       LI   R8,>0010
+       CLR  @IC
+       JMP  ID
+IB     LI   R6,>0100
+       MOV  R6,R8
+       SETO @IC
+       JMP  ID
+ 
+*********************
+* Setup for a GIFile*
+*********************
+GIFILE BL   @WRTSCR           Display file type on screen
+       DATA LNTYP2
+       CLR  @FILTYP           Set flag to >0000 for GIFile
+       AI   R15,>0006
+       MOV  *R15+,R6
+       SWPB R6
+       MOV  R6,@ES
+       MOV  *R15+,R7
+       SWPB R7
+       MOV  R7,@EU
+       MOVB *R15+,R8
+       SRL  R8,8
+       ANDI R8,>0007
+       MOV  R8,@IE
+       INC  R8
+       MOV  R8,R0
+       LI   R8,>0001
+       SLA  R8,0
+       MOV  R8,@IF
+ 
+*********************
+* Setup for both    *
+*********************
+ID     LI   R1,>0A03
+       LI   R0,IG
+       MOV  R6,R2
+       BLWP @CONV
+       LI   R0,IH
+       MOV  R7,R2
+       BLWP @CONV
+       LI   R0,II
+       MOV  R8,R2
+       BLWP @CONV
+       BL   @WRTSCR
+       DATA LNHSIZ
+       BL   @WRTSCR
+       DATA LNVSIZ
+       BL   @WRTSCR
+       DATA LNCOLR
+       MOV  @FILTYP,@FILTYP
+       JNE  IK
+       B    @IL
+ 
+*********************
+*                   *
+*********************
+IQ     LI   R7,>00D4
+       MOV  @IC,R0
+       JEQ  IB
+       JMP  IM
+IP     B    @QUIT
+IK     MOVB @KYMOD3,@KEYBRD
+IN     BLWP @KSCAN
+       MOV  @STATUS,R0
+       COC  @KYSPCE,R0
+       JNE  IN
+       CB   @KEYVAL,@KYBACK
+       JEQ  IO
+       CB   @KEYVAL,@KYQUIT
+       JEQ  IP
+       CB   @KEYVAL,@KYSPCE
+       JEQ  IQ
+       CB   @KEYVAL,@KYENTR
+       JNE  IN
+       LI   R0,IR
+       MOVB R0,@IS
+       LI   R0,>0A00
+       LI   R2,>0002
+       CLR  R1
+       MOVB @EC,R1
+       SLA  R1,4
+       SOCB @EC,R1
+       MOV  @IC,@IC
+       JEQ  IT
+       MOVB @EC,R1
+       ORI  R0,>0400
+       SRL  R2,1
+IT     MOVB R0,@IU
+       MOVB R1,@IV
+       MOV  R2,@IW
+       LI   R15,RECBUF
+       MOVB *R15,@IX
+       LI   R1,IY
+       BL   @SETVDP
+       BL   @IZ
+       BL   @RE$VDP
+       BL   @OPEN
+       BL   @GETREC
+       LI   R15,RECBUF+2
+       MOVB @HEX01,@JB
+       MOV  @IC,@IC
+       JNE  JC
+       LI   R1,JD
+       LI   R0,>9000
+JF     MOVB *R15+,R2
+       MOVB *R15+,R3
+       BLWP @VWTR
+       MOVB R2,@VDPWP
+       MOVB R3,@VDPWP
+       MOVB R2,*R1+
+       MOVB R3,*R1+
+       INC  R0
+       CI   R0,>9010
+       JL   JF
+       CLR  R6
+       CLR  R7
+JK     MOV  R6,R0
+       MOV  R7,R1
+       MOV  *R15+,R2
+       MOVB R2,R3
+       SRL  R3,4
+       ANDI R2,>01FF
+       JNE  JG
+       MOV  @JH,R2
+JG     A    R2,R6
+       BL   @JI
+       CI   R15,KN
+       JL   JJ
+       BL   @GETREC
+JJ     CI   R6,>0200
+       JL   JK
+       CLR  R6
+       INC  R7
+       CLR  R12
+       TB   >05
+       JNE  IO
+       CI   R7,>00D4
+       JL   JK
+       BL   @CLOSE
+       B    @DONE
+ 
+IO     BL   @CLOSE
+       B    @MAIN
+ 
+*********************
+*                   *
+*********************
+JC     CLR  R6
+       CLR  R7
+JO     MOV  R6,R0
+       MOV  R7,R1
+       MOV  *R15+,R2
+       MOVB R2,R3
+       ANDI R2,>00FF
+       JNE  JL
+       MOV  @JM,R2
+JL     A    R2,R6
+       BL   @JI
+       CI   R15,KN
+       JL   JN
+       BL   @GETREC
+JN     CI   R6,>0100
+       JL   JO
+       CLR  R6
+       INC  R7
+       CLR  R12
+       TB   >05
+       JNE  IO
+       CI   R7,>00D4
+       JL   JO
+       BL   @CLOSE
+       B    @DONE
+ 
+*********************
+*                   *
+*********************
+IL     CLR  R2
+       LI   R3,>0E00
+       SETO @IC
+       C    @IF,@JP
+       JH   JQ
+       C    @ES,@JM
+       JLE  JQ
+       CLR  @IC
+       INC  R2
+       LI   R3,>0A00
+JQ     MOVB @JR(R2),@JS
+       MOVB R3,@IU
+       SLA  R2,1
+       MOV  @JM(R2),R3
+       MOV  R3,@ES
+       SWPB R3
+       MOV  R3,@IW
+       CLR  R0
+       LI   R2,IR
+       CLR  @EW
+       CLR  R3
+       MOV  @JT,R1
+       C    @EU,R1
+       JLE  JU
+       ORI  R2,>0C00
+       INCT R3
+       SETO @EW
+       SLA  R1,1
+JU     MOV  R1,@EU
+       MOVB R2,@IS
+       MOV  @JV(R3),@LNMODE+2
+       BL   @WRTSCR
+       DATA LNMODE
+KK     LI   R1,>0A03
+       MOV  @ER,R2
+       MOV  R2,R3
+       SRL  R3,15
+       MOVB @JX(R3),@JY
+       ABS  R2
+       LI   R0,JZ
+       BLWP @CONV
+       MOV  @ET,R2
+       MOV  R2,R3
+       SRL  R3,15
+       MOVB @JX(R3),@KA
+       ABS  R2
+       LI   R0,KB
+       BLWP @CONV
+       BL   @WRTSCR
+       DATA LNSHFT
+       MOVB @KYMOD3,@KEYBRD
+KC     BLWP @KSCAN
+       MOV  @STATUS,R0
+       COC  @KYSPCE,R0
+       JNE  KC
+       CB   @KEYVAL,@KYENTR
+       JEQ  KD
+       CB   @KEYVAL,@KYUP
+       JEQ  KE
+       CB   @KEYVAL,@KYDOWN
+       JEQ  KF
+       CB   @KEYVAL,@KYLEFT
+       JEQ  KH
+       CB   @KEYVAL,@KYRGHT
+       JEQ  KJ
+       CB   @KEYVAL,@KYBACK
+       JNE  KC
+       B    @MAIN
+KE     INC  @ET
+       LI   R0,>0200
+       C    @ET,R0
+       JLT  KK
+       MOV  R0,@ET
+       JMP  KK
+ 
+KF     DEC  @ET
+       LI   R0,>FE00
+       C    @ET,R0
+       JGT  KK
+       MOV  R0,@ET
+       JMP  KK
+ 
+KH     INC  @ER
+       LI   R0,>0200
+       C    @ER,R0
+       JLT  KK
+       MOV  R0,@ER
+       JMP  KK
+ 
+KJ     DEC  @ER
+       LI   R0,>FE00
+       C    @ER,R0
+       JGT  KK
+       MOV  R0,@ER
+       JMP  KK
+ 
+*********************
+*                   *
+*********************
+KD     LI   R15,RECBUF+11
+       MOVB *R15,@EC
+       MOVB *R15,@IX
+       LI   R3,KN
+       MOV  @JH,R0
+       MOVB @EC,@IV
+       MOV  @IC,@IC
+       JNE  KO
+       CLR  R1
+       MOVB @EC,R1
+       SLA  R1,4
+       SOCB @EC,R1
+       MOVB R1,@IV
+KO     CLR  *R3+
+       DEC  R0
+       JNE  KO
+       LI   R1,IY
+       BL   @SETVDP
+       MOV  @EW,@EW
+       JNE  KP
+       BL   @IZ
+       JMP  KQ
+KP     BL   @KR
+KQ     BL   @RE$VDP
+       BL   @OPEN
+       BL   @GETREC
+       LI   R15,RECBUF+13
+       LI   R6,KN
+       MOV  @IF,R3
+       SLA  R3,1
+       A    @IF,R3
+KT     BL   @GJ
+       ANDI R0,>E000
+       MOVB R0,*R6+
+       DEC  R3
+       JNE  KT
+       LI   R6,KN
+       LI   R7,EP
+       MOV  @IC,@IC
+       JEQ  KU
+       MOV  @JM,R4
+KV     MOVB *R6+,R1
+       MOVB *R6+,R2
+       MOVB *R6+,R3
+       SRL  R1,3
+       SRL  R3,6
+       SOCB R2,R1
+       SOCB R3,R1
+       MOVB R1,*R7+
+       DEC  R4
+       JNE  KV
+       JMP  KW
+KU     CLR  R4
+KX     MOVB *R6+,R1
+       MOVB *R6+,R2
+       MOVB *R6+,R3
+       SRL  R1,1
+       SRL  R2,5
+       SRL  R3,5
+       SOCB R3,R1
+       MOV  R4,R0
+       SWPB R0
+       MOVB R0,*R7+
+       MOVB R0,@VDPWA
+       LI   R0,>9000
+       MOVB R0,@VDPWA
+       MOVB R1,@VDPWP
+       MOVB R2,@VDPWP
+       INC  R4
+       C    R4,@IF
+       JL   KX
+KW     BL   @GJ
+       CI   R0,>3B00
+       JEQ  KY
+       CI   R0,>2100
+       JEQ  KZ
+       CI   R0,>2C00
+       JEQ  LA
+       JMP  KW
+ 
+KY     BL   @CLOSE
+       B    @DONE
+ 
+KZ     BL   @GJ
+LC     BL   @GJ
+       MOVB R0,R3
+       JEQ  KW
+       SRL  R3,8
+LB     BL   @GJ
+       DEC  R3
+       JNE  LB
+       JMP  LC
+LA     BL   @GJ
+       MOVB R0,@LD
+       BL   @GJ
+       MOVB R0,@FC
+       BL   @GJ
+       MOVB R0,@LE
+       BL   @GJ
+       MOVB R0,@FG
+       BL   @GJ
+       MOVB R0,@LF
+       BL   @GJ
+       MOVB R0,@EZ
+       A    @FC,@EZ
+       BL   @GJ
+       MOVB R0,@LG
+       BL   @GJ
+       MOVB R0,@FD
+       A    @FG,@FD
+       BL   @GJ
+       MOVB R0,R0
+       JLT  KY
+       LI   R9,LH
+       ANDI R0,>4000
+       JEQ  LI
+       LI   R9,LJ
+LI     MOV  *R9+,R7
+       MOV  *R9+,R6
+       A    @FG,R7
+       MOV  @FC,R8
+       BL   @GJ
+       MOVB R0,R13
+       SRL  R13,8
+       MOV  R13,@LK
+       LI   R1,>0001
+       SRL  R0,8
+       JEQ  LL
+       SLA  R1,0
+LL     MOV  R1,@LM
+       INC  R1
+       MOV  R1,@LN
+       BL   @GJ
+       MOVB R0,@GL
+       MOV  @JM,@GH
+LS     MOV  @LK,R13
+       INC  R13
+       LI   R12,>B0F0
+       LI   R5,>B0F0
+       CLR  R1
+LP     CLR  *R5+
+       MOV  R1,*R5+
+       INC  R1
+       C    R1,@LN
+       JLE  LP
+       MOV  @LN,R4
+       INC  R4
+       MOV  R5,@LQ
+       BL   @LR
+       C    R1,@LM
+       JEQ  LS
+       MOV  R1,@LT
+       MOV  R1,@LU
+       BL   @LV
+MC     BL   @LR
+       C    R1,@LM
+       JEQ  LS
+       C    R1,@LN
+       JNE  LW
+       B    @KW
+LW     MOV  R1,@LX
+       MOV  R1,R2
+       SLA  R2,2
+       AI   R2,>B0F0
+       C    R2,R5
+       JL   LY
+       MOV  @LT,*R5
+       MOV  @LU,@>0002(R5)
+       MOV  R4,@LX
+       MOV  R5,R2
+LY     C    R2,@LQ
+       JL   LZ
+       DEC  R12
+       MOVB @>0003(R2),*R12
+       MOV  *R2,R2
+       SLA  R2,2
+       AI   R2,>B0F0
+       JMP  LY
+ 
+LZ     MOV  @>0002(R2),@LU
+       MOV  @>0002(R2),R1
+       BL   @LV
+MB     CI   R12,>B0F0
+       JHE  MA
+       MOVB *R12+,R1
+       SRL  R1,8
+       BL   @LV
+       JMP  MB
+ 
+MA     CI   R4,>0FFF
+       JEQ  MC
+       MOV  @LT,*R5+
+       MOV  @LU,*R5+
+       MOV  @LX,@LT
+       LI   R3,>0001
+       MOV  R13,R0
+       SLA  R3,0
+       INC  R4
+       C    R4,R3
+       JL   MC
+       INC  R13
+       JMP  MC
+ 
+*********************
+* Display finished! *
+*********************
+DONE   BL   @KY$BQE           Wait for a BACK, QUIT, ENTER
+       B    @MAIN             ENTER pressed, so return to main screen

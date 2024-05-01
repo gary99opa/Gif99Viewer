@@ -1,0 +1,88 @@
+****************************************************************
+* GIF-S       v1.05.09/28/89  GIF99VIEWER FOR V9958  BY O.P.A. *
+****************************************************************
+*                                                              *
+* Source Published: 04/30/2024 garyopa.com / ti99.atariage.com *
+*                                                              *
+* Copyrighted 1989 by Gary Bowser and Achim Liese from O.P.A.  *
+*                                                              *
+* Credit Must Be Included When Using Source from GIF9958VIEWER *
+*                                                              *
+****************************************************************
+       TITL 'GIF VIEWER FOR 9958 SYSTEMS'
+       IDT  'GIF99OPA'
+       DEF  SFIRST,SSTART,SLAST
+ 
+TITLE  EQU  >0000             BLWP vectors for TI title screen
+SCAN   EQU  >000E             Address of console KEY SCAN
+ 
+IR     EQU  >8200             (used as VDP R9 default value)
+ 
+FAC    EQU  >834A             Buffer area for the CIF BLWP
+SECDRV EQU  >834C             Drive number for sector r/w
+SEC$RW EQU  >834D             Sector read/write control byte
+SECBUF EQU  >834E             Address of sector buffer in VDP
+SECNUM EQU  >8350             Sector number to read/write
+DSRNAM EQU  >8354             Length of the current DSR name
+POINTR EQU  >8356             Pointer to the current DSR PAB
+RAMTOP EQU  >8370             Pointer to the end of VDP RAM
+KEYBRD EQU  >8374             Current keyboard mode
+KEYVAL EQU  >8375             Current key being pressed
+STATUS EQU  >837C             Current GPL (console) status
+SP$ROM EQU  >83D0             Current CRU search address
+SRHADR EQU  >83D2             Current DSR search address
+VDPR1  EQU  >83D4             Copy of VDP R1 for console use
+GPLWS  EQU  >83E0             Address of GPL workspace
+ 
+VDPRD  EQU  >8800             VDP READ  PORT #0 (DATA)
+VDPSTA EQU  >8802             VDP READ  PORT #1 (STATUS)
+VDPWD  EQU  >8C00             VDP WRITE PORT #0 (DATA)
+VDPWA  EQU  >8C02             VDP WRITE PORT #1 (ADDRESS)
+VDPWP  EQU  >8C04             VDP WRITE PORT #2 (PALLETE)
+VDPWC  EQU  >8C06             VDP WRITE PORT #3 (CONTROL)
+ 
+LO     EQU  >B0F0
+KL     EQU  >FE00
+ 
+       AORG >2000
+*
+* Note The Program Must Fit Within The Lower 8k Ram Space
+*
+SFIRST COPY "DSK6.GIF-MAIN"
+       COPY "DSK6.GIF-SUBS"
+       COPY "DSK6.GIF-BLWP"
+       COPY "DSK6.GIF-DATA"
+       EVEN
+SLAST  EQU  $
+*
+* The Higher 24k Ram Space Is Used For Buffers & Workspace
+*
+       AORG >A000
+ 
+********************** FORMAT: LOWBUF   = VDP address of save
+* Saved VDP buffer   *         LOWBUF+2 = Length of saved VDP
+**********************         LOWBUF+4 = .... the saved data
+LOWBUF BSS  2100               Saved VDP disk buffers
+ 
+**********************
+* 2K buffer space    *
+**********************
+FILTBL BSS  640               Buffer to store 64 GIF filenames
+SECONE BSS  256               Buffer to store sorted catalog sector
+RECBUF BSS  128               Buffer to store one 128 byte record
+KN     BSS  768
+EP     BSS  256
+ 
+**********************
+* CPU workspace area *
+**********************
+MAINWS BSS  32                Workspace for GIF99 program
+BLWPWS BSS  32                Workspace for CONV  program
+DSRWS  BSS  32                Workspace for BLWP DSRLNK
+NAMBUF EQU  $             |-> R0-3 used as DSRLNK name buffer
+UTILWS BSS  32          <-|   Workspace for other BLWP's
+ 
+**********************
+* FINALLY, THE END!! *
+**********************
+       END

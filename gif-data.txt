@@ -1,0 +1,316 @@
+****************************************************************
+* GIF-DATA    v1.05.09/29/89  GIF99VIEWER FOR V9958  BY O.P.A. *
+****************************************************************
+*                                                              *
+* Source Published: 04/30/2024 garyopa.com / ti99.atariage.com *
+*                                                              *
+* Copyrighted 1989 by Gary Bowser and Achim Liese from O.P.A.  *
+*                                                              *
+* Credit Must Be Included When Using Source from GIF9958VIEWER *
+*                                                              *
+****************************************************************
+ 
+*********************
+* GIF character set *
+*********************
+CHAR   DATA >0020,>0000,>1824,>2418,>0020,>0008,>1808,>081C   0,1
+       DATA >0020,>0018,>2408,>103C,>0020,>0018,>2408,>2418   2,3
+       DATA >0020,>0014,>141C,>0404,>0020,>001C,>1018,>0418   4,5
+       DATA >0020,>0008,>1038,>2418,>0020,>001C,>0408,>1010   6,7
+       DATA >0020,>0018,>2418,>2418,>0020,>0018,>241C,>0408   8,9
+       DATA >4040,>7000,>1C10,>1C10,>0040,>0020,>2038,>2438  10,11
+       DATA >0070,>5070,>4854,>1C14,>0070,>4070,>001C,>1010  12,13
+       DATA >0020,>0018,>243C,>2018,>0040,>0814,>101C,>1010  14,15
+       DATA >0040,>4040,>1824,>2418,>0020,>2020,>2808,>0808  16,17
+       DATA >0040,>4058,>2408,>103C,>0040,>4058,>2408,>2418  18,19
+       DATA >0040,>4054,>141C,>0404,>0040,>405C,>1018,>0418  20,21
+       DATA >0040,>4048,>1038,>2418,>0040,>405C,>0408,>1010  22,23
+       DATA >0040,>4058,>2418,>2418,>0040,>4058,>241C,>0408  24,25
+       DATA >0040,>4040,>1824,>3C24,>0040,>4050,>101C,>141C  26,27
+       DATA >0040,>4040,>1C10,>101C,>0040,>4444,>041C,>141C  28,29
+       DATA >0070,>7070,>7070,>7070,>0040,>4C50,>101C,>1010  30,31
+ 
+       DATA >0000,>0000,>0000,>0000,>0010,>1010,>1010,>0010    , !
+       DATA >0028,>2828,>0000,>0000,>0028,>287C,>287C,>2828  " , #
+       DATA >0038,>5450,>3814,>5438,>0060,>6408,>1020,>4C0C  $ , %
+       DATA >0020,>5050,>2054,>4834,>0008,>0810,>0000,>0000  & , '
+       DATA >0008,>1020,>2020,>1008,>0020,>1008,>0808,>1020  ( , )
+       DATA >0000,>2810,>7C10,>2800,>0000,>1010,>7C10,>1000  * , +
+       DATA >0000,>0000,>0030,>1020,>0000,>0000,>7C00,>0000  , , -
+       DATA >0000,>0000,>0000,>3030,>0000,>0408,>1020,>4000  . , /
+       DATA >0038,>4444,>4444,>4438,>0010,>3010,>1010,>1038  0 , 1
+       DATA >0038,>4404,>0810,>207C,>0038,>4404,>1804,>4438  2 , 3
+       DATA >0008,>1828,>487C,>0808,>007C,>4078,>0404,>4438  4 , 5
+       DATA >0018,>2040,>7844,>4438,>007C,>0408,>1020,>2020  6 , 7
+       DATA >0038,>4444,>3844,>4438,>0038,>4444,>3C04,>0830  8 , 9
+       DATA >0000,>3030,>0030,>3000,>0000,>3030,>0030,>1020  : , ;
+       DATA >0008,>1020,>4020,>1008,>0000,>007C,>007C,>0000  < , =
+       DATA >0020,>1008,>0408,>1020,>0038,>4404,>0810,>0010  > , ?
+       DATA >0038,>445C,>545C,>4038,>0038,>4444,>7C44,>4444  @ , A
+       DATA >0078,>2424,>3824,>2478,>0038,>4440,>4040,>4438  B , C
+       DATA >0078,>2424,>2424,>2478,>007C,>4040,>7840,>407C  D , E
+       DATA >007C,>4040,>7840,>4040,>003C,>4040,>5C44,>4438  F , G
+       DATA >0044,>4444,>7C44,>4444,>0038,>1010,>1010,>1038  H , I
+       DATA >0004,>0404,>0404,>4438,>0044,>4850,>6050,>4844  J , K
+       DATA >0040,>4040,>4040,>407C,>0044,>6C54,>5444,>4444  L , M
+       DATA >0044,>6464,>544C,>4C44,>007C,>4444,>4444,>447C  N , O
+       DATA >0078,>4444,>7840,>4040,>0038,>4444,>4454,>4834  P , Q
+       DATA >0078,>4444,>7850,>4844,>0038,>4440,>3804,>4438  R , S
+       DATA >007C,>1010,>1010,>1010,>0044,>4444,>4444,>4438  T , U
+       DATA >0044,>4444,>2828,>1010,>0044,>4444,>5454,>5428  V , W
+       DATA >0044,>4428,>1028,>4444,>0044,>4428,>1010,>1010  X , Y
+       DATA >007C,>0408,>1020,>407C,>0038,>2020,>2020,>2038  Z , [
+       DATA >0000,>4020,>1008,>0400,>0038,>0808,>0808,>0838  \ , ]
+       DATA >0000,>1028,>4400,>0000,>0000,>0000,>0000,>007C  ^ , _
+       DATA >0000,>2010,>0800,>0000,>0000,>0038,>4848,>4834  ` , a
+       DATA >0040,>4070,>4848,>4870,>0000,>0038,>4040,>4038  b , c
+       DATA >0008,>0838,>4848,>4834,>0000,>0038,>4870,>4038  d , e
+       DATA >0018,>2020,>7020,>2020,>0000,>0038,>4838,>0830  f , g
+       DATA >0040,>4070,>4848,>4848,>0010,>0030,>1010,>1038  h , i
+       DATA >0010,>0030,>1010,>5020,>0040,>4048,>5060,>5048  j , k
+       DATA >0030,>1010,>1010,>1038,>0000,>0078,>5454,>5454  l , m
+       DATA >0000,>0070,>4848,>4848,>0000,>0030,>4848,>4830  n , o
+       DATA >0000,>0070,>4870,>4040,>0000,>0038,>4838,>0808  p , q
+       DATA >0000,>0058,>6440,>4040,>0000,>0038,>4038,>0438  r , s
+       DATA >0020,>2078,>2020,>2418,>0000,>0048,>4848,>483C  t , u
+       DATA >0000,>0044,>4428,>2810,>0000,>0044,>4454,>5438  v , w
+       DATA >0000,>0044,>2810,>2844,>0000,>0048,>4830,>1020  x , y
+       DATA >0000,>0038,>0810,>2038,>0018,>2020,>4020,>2018  z , {
+       DATA >0010,>1010,>0010,>1010,>0030,>0808,>0408,>0830  | , }
+       DATA >0020,>5408,>0000,>0000,>0000,>1028,>447C,>0000  ~ , DEL
+ 
+*********************
+* Version # & date  *
+*********************
+GIFVER DATA 1                 Part 1 of version number
+       DATA 5                 Part 2 of version number
+       DATA 29                Part 1 of version date   (day)
+       DATA 9                 Part 2 of version date   (month)
+       DATA 1989              Part 3 of version date   (year)
+ 
+*********************
+* Low memory BLWP's *
+*********************
+DSRLNK DATA DSRWS,DSR1        BLWP vectors for DSRLNK
+VSBR   DATA UTILWS,VSBR1      BLWP vectors for VSBR
+VSBW   DATA UTILWS,VSBW1      BLWP vectors for VSBW (not used)
+VMBR   DATA UTILWS,VMBR1      BLWP vectors for VMBR
+VMBW   DATA UTILWS,VMBW1      BLWP vectors for VMBW
+VWTR   DATA UTILWS,VWTR1      BLWP vectors for VWTR
+KSCAN  DATA UTILWS,KSCAN1     BLWP vectors for KSCAN
+SPACE  TEXT ' '               Space check byte
+HEXAA  BYTE >AA               Header check byte
+PERIOD TEXT '.'               Period check byte
+       EVEN
+ 
+*********************
+* Low memory data   *
+*********************
+GIFPAB DATA >0005,>1900,>8080,>0000,>000F    GIF FILE PAB
+GIFNAM TEXT 'DSK1.0123456789'                GIF FILE NAME
+       EVEN
+OPENMD DATA >0005             Open mode of GIF PAB
+CLSEMD DATA >0105             Close mode of GIF PAB
+READMD DATA >0205             Read mode of GIF PAB
+CHKFIL TEXT 'GI'              If 'GI' found then GIF not a MY-ART
+FILTYP DATA 0                 Type: >0000 = GIF or >FFFF = MY-ART
+IC     DATA >0000
+EW     BYTE >00
+DV     BYTE >00
+HEX01  DATA >0100             MSByte used by different sections
+JP     DATA >0010
+HEX30  DATA >3000             MSByte used to calc real drive number
+HEX80  DATA >8000             MSByte used to check record length
+SECPAB DATA >0110             DSR PAB for sub-program SECTOR I/O
+JT     DATA >00D4
+JM     DATA >0100
+JH     DATA >0200
+EC     BYTE >00
+VDPR14 BYTE 0                 Current VDP RAM BANK number
+JD     BSS  32
+JR     DATA >3736
+JV     DATA >0018,>0023
+ER     DATA >0000
+ET     DATA >0000
+ES     DATA >0000
+EU     DATA >0000
+IF     DATA >0000
+IE     DATA >0000
+FC     BYTE >00
+LD     BYTE >00
+FG     BYTE >00
+LE     BYTE >00
+EZ     BYTE >00
+LF     BYTE >00
+FD     BYTE >00
+LG     BYTE >00
+LK     DATA >0000
+LM     DATA >0000
+LN     DATA >0000
+GK     BYTE >00
+GL     BYTE >00
+GH     DATA >0000
+LQ     DATA >0000
+LT     DATA >0000
+LU     DATA >0000
+LX     DATA >0000
+LH     DATA >0000,>0001,>0000
+LJ     DATA >0000,>0008,>0004,>0008,>0002,>0004
+       DATA >0001,>0002,>0000
+GE     DATA >0000
+GG     DATA >0000,>0000,>0000,>0000
+GF     DATA >0000
+KYBACK BYTE 15                Keypress for BACK  (FCTN 9)
+KYQUIT BYTE 5                 Keypress for QUIT  (FCTN =)
+KYUP   TEXT 'E'               Keypress for UP    arrow
+KYDOWN TEXT 'X'               Keypress for DOWN  arrow
+KYLEFT TEXT 'S'               Keypress for LEFT  arrow
+KYRGHT TEXT 'D'               Keypress for RIGHT arrow
+KYENTR BYTE 13                Keypress for ENTER
+KYMOD3 BYTE 3                 Keyboard mode 3 (Uppercase only)
+KYSPCE DATA >2000             SPACE key and new key pressed check
+SAVDRV DATA 0                 Saved drive number in MSByte
+JX     TEXT '+-'              Symbols plus and minus
+DRVLST TEXT '123456789'       List of valid drive numbers
+       BYTE 0                 Marker to end above DRVLST
+       EVEN
+ 
+*********************
+* Title screen data *
+*********************
+LNLOAD DATA 587,24            Screen address, Text length, Text string
+       TEXT 'Loading: DSK .          '
+LNOFND DATA 747,23            Screen address, Text length, Text string
+       TEXT 'No graphic file found ! '
+LNTIT1 DATA 20,40             Screen address, Text length, Text string
+       TEXT '   GIF File Translator   Version '
+VERNUM TEXT '0.00   '
+LNTIT2 DATA 100,40            Screen address, Text length, Text string
+       TEXT '========================================'
+LNTIT3 DATA 2026,28           Screen address, Text length, Text string
+       TEXT '(C) '
+VERDAY TEXT '00.'
+VERMTH TEXT '00.'
+VERYER TEXT '0000 by GB&AL OPA '
+LNSHFT DATA 1062,34           Screen address, Text length, Text string
+       TEXT 'Shift left: '
+JY     TEXT '+'
+JZ     TEXT '000    Shift up: '
+KA     TEXT '+'
+KB     TEXT '000'
+LNMODE DATA 1862              Screen address, Text length, Text string
+       DATA 24                24 or 36 // non-interlaced or interlaced
+       TEXT 'Display Mode: Graphics '
+JS     TEXT '0'
+       TEXT ',interlaced '
+LNTYP1 DATA 1228,22           Screen address, Text length, Text string
+       TEXT 'File is MY-Art format '
+LNTYP2 DATA 1228,22           Screen address, Text length, Text string
+       TEXT ' File is GIF format   '
+LNHSIZ DATA 1384,30           Screen address, Text length, Text string
+IG     TEXT '000 dots horizontal resolution'
+LNVSIZ DATA 1544,28           Screen address, Text length, Text string
+IH     TEXT '000 dots vertical resolution'
+LNCOLR DATA 1704,21           Screen address, Text length, Text string
+II     TEXT '000 colors in picture '
+ 
+*********************
+*                   *
+*********************
+IY     DATA >0091             VDP Rs list (VDP R17 control)
+IU     BYTE >0A               R0
+       BYTE >62               R1
+       BYTE >3F               R2
+       BYTE >00               R3
+       BYTE >00               R4
+       BYTE >F7               R5
+       BYTE >3E               R6
+IX     BYTE >00               R7
+       BYTE >2A               R8
+IS     BYTE >82               R9
+       BYTE >00               R10
+       BYTE >03               R11
+       BYTE >00               R12
+       BYTE >00               R13
+       BYTE >03               R14
+       EVEN
+ 
+*********************
+* TEXT80 VDP Rs list*
+*********************
+TXTVDP DATA >0091             VDP Rs list (VDP R17 control)
+       BYTE >04               R0  = M4 (TEXT80)
+       BYTE >F0               R1  = 16K/BL/IE0/M1 (TEXT)
+       BYTE >03               R2  = Pattern name table  = >00000
+       BYTE >2F               R3  = Pattern color table = >00A00
+       BYTE >02               R4  = Pattern image table = >01000
+       BYTE >00               R5  = (not used)
+       BYTE >00               R6  = (not used)
+       BYTE >F4               R7  = WHITE text on BLUE background
+       BYTE >0A               R8  = 64K/BW (Black/White mode)
+       BYTE >80               R9  = LN (212 line screen)
+       BYTE >00               R10 = Pattern color table = >00A00
+       BYTE >00               R11 = (not used)
+       BYTE >00               R12 = Blinking text fore/back ground
+       BYTE >00               R13 = No blinking allowed (0 ms)
+       BYTE >00               R14 = VDP RAM BANK #0
+       EVEN
+ 
+*********************
+* TIMODE VDP Rs list*
+*********************
+TIVDP  DATA >0091             VDP Rs list (VDP R17 control)
+       BYTE >00               R0  =
+       BYTE >E0               R1  =
+       BYTE >00               R2  =
+       BYTE >0C               R3  =
+       BYTE >00               R4  =
+       BYTE >86               R5  =
+       BYTE >00               R6  =
+       BYTE >17               R7  =
+       BYTE >08               R8  =
+       BYTE >00               R9  =
+       BYTE >00               R10 =
+       BYTE >00               R11 =
+       BYTE >00               R12 =
+       BYTE >00               R13 =
+       BYTE >00               R14 =
+       EVEN
+ 
+********************* FORMAT: CCCC/xRRR/xGGG/xBBB
+* 9918 Palette list *
+*********************               RGB
+PALIST DATA >0000             R0  = 000 = Transparent
+       DATA >1000             R1  = 000 = Black
+       DATA >2161             R2  = 161 = Medium Green
+       DATA >3373             R3  = 373 = Light Green
+       DATA >4117             R4  = 117 = Dark Blue
+       DATA >5237             R5  = 237 = Light Blue
+       DATA >6511             R6  = 511 = Dark Red
+       DATA >7267             R7  = 267 = Cyan
+       DATA >8711             R8  = 711 = Medium Red
+       DATA >9733             R9  = 733 = Light Red
+       DATA >A661             R10 = 661 = Dark Yellow
+       DATA >B664             R11 = 664 = Light Yellow
+       DATA >C141             R12 = 141 = Dark Green
+       DATA >D625             R13 = 625 = Magenta
+       DATA >E555             R14 = 555 = Gray
+       DATA >F777             R15 = 777 = White
+ 
+*********************
+* Misc. data block  *
+*********************
+DY     DATA >2491,>0000
+       BYTE >00
+DW     BYTE >00
+IW     DATA >0001,>D400
+IV     DATA >0000,>C000
+ 
+EI     DATA >2491
+EE     DATA >0000
+EF     BYTE >00
+JB     BYTE >00
+EG     DATA >0000,>0100
+EH     DATA >0000,>8000
+ 
+EV     DATA >2491,>2C91,>0050

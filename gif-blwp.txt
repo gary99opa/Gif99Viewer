@@ -1,0 +1,159 @@
+****************************************************************
+* GIF-BLWP    v1.05.09/29/89  GIF99VIEWER FOR V9958  BY O.P.A. *
+****************************************************************
+*                                                              *
+* Source Published: 04/30/2024 garyopa.com / ti99.atariage.com *
+*                                                              *
+* Copyrighted 1989 by Gary Bowser and Achim Liese from O.P.A.  *
+*                                                              *
+* Credit Must Be Included When Using Source from GIF9958VIEWER *
+*                                                              *
+****************************************************************
+ 
+********************* PASSED: R0 = Pointer to answer buffer
+* Convert ? to ASCII*         R1 = Divider / Max. length
+*********************         R2 = Value to be converted
+CONV   DATA BLWPWS,CONV1      BLWP vectors for CONV
+CONV0  TEXT '0123456789ABCDEF'     convert data
+CONV1  MOV  R13,R9            Put old WS pointer into R9
+       MOV  *R9+,R1           Put old R0 into R1
+       MOVB *R9+,R2           Put MSByte of old R1 into R2
+       SRL  R2,8              Make R2 into convert divide
+       MOVB *R9+,R3           Put LSByte of old R1 into R3
+       SRL  R3,8              Make R3 into convert length
+       MOV  *R9+,R4           Put old R2 into R4
+       A    R3,R1             Add max. length to answer address
+       DEC  R1                Point to the last byte in answer
+CONV2  MOV  R4,R5             Move current value into R5
+       CLR  R4                Setup for a 32 bit divide
+       DIV  R2,R4             Divide value by (MSByte of old R1)
+       MOVB @CONV0(R5),*R1    Put text character into answer buffer
+       DEC  R1                Point to the next last byte in answer
+       DEC  R3                Check if finished
+       JNE  CONV2             Nope, so convert some more
+       RTWP                   RETURN TO THE CALLING PROGRAM
+ 
+*********************
+* Normal EA5 DSRLNK *
+*********************
+DSR1   MOV  *R14+,R5
+       SZCB @SPACE,R15
+       MOV  @POINTR,R0
+       MOV  R0,R9
+       AI   R9,-8
+       BLWP @VSBR
+       MOVB R1,R3
+       SRL  R3,8
+       SETO R4
+       LI   R2,NAMBUF
+DLOOP1 INC  R0
+       INC  R4
+       C    R4,R3
+       JEQ  DJUMP1
+       BLWP @VSBR
+       MOVB R1,*R2+
+       CB   R1,@PERIOD
+       JNE  DLOOP1
+DJUMP1 MOV  R4,R4
+       JEQ  DJUMP6
+       CI   R4,7
+       JGT  DJUMP6
+       CLR  @SP$ROM
+       MOV  R4,@DSRNAM
+       INC  R4
+       A    R4,@POINTR
+       LWPI GPLWS
+       CLR  R1
+       LI   R12,>0F00
+DLOOP2 MOV  R12,R12
+       JEQ  DJUMP2
+       SBZ  0
+DJUMP2 AI   R12,>0100
+       CLR  @SP$ROM
+       CI   R12,>2000
+       JEQ  DJUMP5
+       MOV  R12,@SP$ROM
+       SBO  0
+       LI   R2,>4000
+       CB   *R2,@HEXAA
+       JNE  DLOOP2
+       A    @5*2+DSRWS,R2
+       JMP  DJUMP3
+DLOOP3 MOV  @SRHADR,R2
+       SBO  0
+DJUMP3 MOV  *R2,R2
+       JEQ  DLOOP2
+       MOV  R2,@SRHADR
+       INCT R2
+       MOV  *R2+,R9
+       MOVB @DSRNAM+1,R5
+       JEQ  DJUMP4
+       CB   R5,*R2+
+       JNE  DLOOP3
+       SRL  R5,8
+       LI   R6,NAMBUF
+DLOOP4 CB   *R6+,*R2+
+       JNE  DLOOP3
+       DEC  R5
+       JNE  DLOOP4
+DJUMP4 INC  R1
+       BL   *R9
+       JMP  DLOOP3
+       SBZ  0
+       LWPI DSRWS
+       MOV  R9,R0
+       BLWP @VSBR
+       SRL  R1,13
+       JNE  DJUMP7
+       RTWP
+DJUMP5 LWPI DSRWS
+DJUMP6 CLR  R1
+DJUMP7 SWPB R1
+       MOVB R1,*R13
+       SOCB @SPACE,R15
+       RTWP
+ 
+*********************
+* Normal EA5 UTIL's *
+*********************
+VSBR1  BL   @VRWAL            Setup VDP read address
+       MOVB @VDPRD,@2(R13)    Read a byte from VDP into R1
+       RTWP                   RETURN TO THE CALLING PROGRAM
+ 
+VSBW1  BL   @VWWAL            Setup VDP write address
+       MOVB @2(R13),@VDPWD    Write a byte to VDP from R1
+       RTWP                   RETURN TO THE CALLING PROGRAM
+ 
+VMBR1  BL   @VRWAL            Setup VDP read address
+VMBR2  MOVB @VDPRD,*R10+      Read a byte from VDP into CPU
+       DEC  R12               Check if finished
+       JNE  VMBR2             Nope, so read some more
+       RTWP                   RETURN TO THE CALLING PROGRAM
+ 
+VMBW1  BL   @VWWAL            Setup VDP write address
+VMBW2  MOVB *R10+,@VDPWD      Write a byte to VDP from CPU
+       DEC  R12               Check if finished
+       JNE  VMBW2             Nope, so write some more
+       RTWP                   RETURN TO THE CALLING PROGRAM
+ 
+VWTR1  MOV  *R13,R10          Get the VDP R number and data
+       MOVB @1(R13),@VDPWA    Write the VDP R data
+       ORI  R10,>8000         Set bit 0 for VDP R changes
+       MOVB R10,@VDPWA        Write the VDP R number
+       RTWP                   RETURN TO THE CALLING PROGRAM
+ 
+KSCAN1 LWPI GPLWS             Switch to the GPL workspace
+       BL   @SCAN             Run the console Keyboard SCAN
+       LWPI UTILWS            Switch back to our workspace
+       RTWP                   RETURN TO THE CALLING PROGRAM
+ 
+VWWAL  LI   R10,>4000         Set bit 1 for VDP write mode
+       JMP  V$WAL             Jump over the reset command
+VRWAL  CLR  R10               Reset bit 1 for VDP read mode
+V$WAL  MOV  *R13,R12          Get the VDP address wanted
+       MOVB @UTILWS+25,@VDPWA Write the LSByte first
+       SOC  R10,R12           Set/Reset bit 1 of address
+       MOVB R12,@VDPWA        Write the MSByte next
+       MOV  @2(R13),R10       Put CPU buffer address into R10
+       MOV  @4(R13),R12       Put CPU buffer length  into R12
+       RT                     RETURN TO THE CALLING UTIL
